@@ -19,11 +19,13 @@ int main(void)
     int amountOfTrianglesInCircle = 100;
     int pointsPerTriangle = 3;
 
-    const char* vertShader; 
-    LoadShader("shaders/3.3.vert.shad", vertShader);
-    
-    const char* fragShader; 
-    LoadShader("shaders/3.3.frag.shad", fragShader);
+    std::string vertShaderStr = LoadShader("../shaders/3.3.vert.shad");
+    std::string fragShaderStr = LoadShader("../shaders/3.3.frag.shad");
+
+    const char* vertShader = vertShaderStr.c_str();
+    const char* fragShader = fragShaderStr.c_str();
+
+
     unsigned int triangleProgram = CreateCircleProgram(VAO, amountOfTrianglesInCircle, vertShader, fragShader);
 
     // -- uncomment to see the outline only --
@@ -33,7 +35,7 @@ int main(void)
     {
         //processInput(window);
         /* Render here */
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(triangleProgram);

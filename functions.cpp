@@ -50,35 +50,26 @@ void processInput(GLFWwindow *window)
     }
 }
 
-/// Load shader from GLSL file to const char* output
-/// @param shaderPath path to GLSL file
-/// @param shaderOutput shader output in string
-void LoadShader(const char* shaderPath, const char* shaderOutput)
+std::string LoadShader(const std::string& shaderPath)
 {
-        std::ifstream shaderFile;
+    std::ifstream shaderFile;
+    shaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-        // ensure ifstream objects can throw exceptions:
-        shaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-
-        try 
-        {
-            // Shaders to stream
-            shaderFile.open(shaderPath);
-            std::stringstream shaderStream;
-
-            shaderStream << shaderFile.rdbuf();
-
-            shaderFile.close();
-
-            std::string shaderInString = shaderStream.str();
-            
-            shaderOutput = shaderInString.c_str();
-        }
-        catch (std::ifstream::failure& e)
-        {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
-        }
+    try 
+    {
+        shaderFile.open(shaderPath);
+        std::stringstream shaderStream;
+        shaderStream << shaderFile.rdbuf();
+        shaderFile.close();
+        return shaderStream.str();
+    }
+    catch (std::ifstream::failure& e)
+    {
+        std::cerr << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what() << std::endl;
+        return "";
+    }
 }
+
 
 unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const char* vertexShaderSource, const char* fragmentShaderSource)
 {   
@@ -96,10 +87,18 @@ unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const
     glGenBuffers(1, &VBO); //tworzy pusty VBO
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO); //ustaw VBO jako aktywny array buffer; wszelkie rzeczy na GL_ARRAY_BUFFER będą dotyczyły obiektu VBO
-    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW); //wypełnij bufor (GPU) danymi
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(
+        0,                  // index = location w shaderze (0 dla aPos)
+        3,                  // ile wartości (vec3 → 3)
+        GL_FLOAT,           // typ danych
+        GL_FALSE,           // normalizacja
+        3 * sizeof(float),  // odstęp między kolejnymi atrybutami (stride)
+        (void*)0            // offset od początku
+    );
+
+    glEnableVertexAttribArray(0); //wybierz layout 0 jako aktywny
 
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
