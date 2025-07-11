@@ -9,5 +9,14 @@ out vec3 ourColor; // output a color to the fragment shader
 void main()
 {
     gl_Position = vec4(aPos, 1.0);
-    ourColor = vec3(aPos.xy, 0.3); 
+
+    vec2 tempVector = aPos.xy;
+
+    if (tempVector.x + tempVector.y < 0.5)
+    {
+        tempVector.x += 0.5;
+        tempVector.y += 0.5;
+    }
+
+    ourColor = vec3(tempVector.xy, 0.3); 
 }                       

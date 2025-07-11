@@ -15,4 +15,6 @@ std::string LoadShader(const std::string& shaderPath);
 void CheckShaderCompilation(unsigned int vertexShader);
 void CheckShaderLink(unsigned int shaderProgram);
 void GetCircle2DVertex(float* startingPoint, float angle, float radius, float* outputVertex);
-void CreateTrianglesInsideCircle(float* vertices, float* startingPoint, int amountOfTriangles);
+void CreateCircleVertices(float* vertices, float* startingPoint, int amountOfTriangles);
+void PrintArray(float* arr, int size);
+void CreateCircleTriangles(unsigned int* elementIndices, int amountOfTriangles);

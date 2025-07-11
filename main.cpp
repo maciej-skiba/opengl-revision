@@ -17,7 +17,8 @@ int main(void)
     unsigned int VAO;
     
     int amountOfTrianglesInCircle = 100;
-    int pointsPerTriangle = 3;
+    extern int numOfDimensionsInVertex;
+    extern int amountOfCircleCenterVertices;
 
     std::string vertShaderStr = LoadShader("../shaders/3.3.vert.shad");
     std::string fragShaderStr = LoadShader("../shaders/3.3.frag.shad");
@@ -35,12 +36,12 @@ int main(void)
     {
         //processInput(window);
         /* Render here */
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(triangleProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, amountOfTrianglesInCircle * pointsPerTriangle);
+        glDrawElements(GL_TRIANGLES, (amountOfTrianglesInCircle + amountOfCircleCenterVertices) * numOfDimensionsInVertex, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

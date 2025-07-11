@@ -1,8 +1,8 @@
-
 #include "functions.hpp"
 
-const int verticesPerTriangle = 3;
-const int vertexNumOfDimensions = 3;
+int numOfDimensionsInVertex = 3;
+int amountOfVerticesInTriangle = 3;
+int amountOfCircleCenterVertices = 1;
 
 int InitializeOpenGL(GLFWwindow*& window)
 {
@@ -70,13 +70,15 @@ std::string LoadShader(const std::string& shaderPath)
     }
 }
 
-
 unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const char* vertexShaderSource, const char* fragmentShaderSource)
 {   
-    float circleVertices[amountOfTriangles * verticesPerTriangle * vertexNumOfDimensions];
+    int totalAmountOfVertices = (amountOfTriangles + amountOfCircleCenterVertices) * numOfDimensionsInVertex;
+    float circleVertices[totalAmountOfVertices];
     float startingPoint[2] = { 0.0f, 0.0f };
 
-    CreateTrianglesInsideCircle(circleVertices, startingPoint, amountOfTriangles);
+    CreateCircleVertices(circleVertices, startingPoint, amountOfTriangles);
+
+    PrintArray(circleVertices, totalAmountOfVertices);
 
     //Vertex Array Object
     glGenVertexArrays(1, &VAO); // tworzy VAO
@@ -89,6 +91,15 @@ unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const
     glBindBuffer(GL_ARRAY_BUFFER, VBO); //ustaw VBO jako aktywny array buffer; wszelkie rzeczy na GL_ARRAY_BUFFER będą dotyczyły obiektu VBO
     glBufferData(GL_ARRAY_BUFFER, sizeof(circleVertices), circleVertices, GL_STATIC_DRAW); //wypełnij bufor (GPU) danymi
 
+    unsigned int elementIndices[amountOfTriangles * numOfDimensionsInVertex]; 
+    CreateCircleTriangles(elementIndices, amountOfTriangles);
+
+    unsigned int EBO;
+    glGenBuffers(1, &EBO);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elementIndices), elementIndices, GL_STATIC_DRAW); 
+
     glVertexAttribPointer(
         0,                  // index = location w shaderze (0 dla aPos)
         3,                  // ile wartości (vec3 → 3)
@@ -97,7 +108,6 @@ unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const
         3 * sizeof(float),  // odstęp między kolejnymi atrybutami (stride)
         (void*)0            // offset od początku
     );
-
     glEnableVertexAttribArray(0); //wybierz layout 0 jako aktywny
 
     unsigned int vertexShader;
@@ -121,6 +131,7 @@ unsigned int CreateCircleProgram(unsigned int &VAO, int amountOfTriangles, const
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
+    CheckShaderLink(shaderProgram);
 
     glUseProgram(shaderProgram);
 
@@ -135,60 +146,47 @@ void GetCircle2DVertex(float* startingPoint, float angle, float radius, float* o
     float angleInRadians = angle * (M_PI / 180.0f);
 
     float x = radius * cos(angleInRadians);
+
+    if (abs(x) < 0.001f)
+    {
+        x = 0;
+    }
+    
     float y = radius * sin(angleInRadians);
+    
+    if (abs(y) < 0.001f)
+    {
+        y = 0;
+    }
 
     outputVertex[0] = x + startingPoint[0];
     outputVertex[1] = y + startingPoint[1];
 }
 
-void CreateTrianglesInsideCircle(float* vertices, float* startingPoint, int amountOfTriangles)
+void CreateCircleVertices(float* vertices, float* startingPoint, int amountOfTriangles)
 {
     float tempVertex[2];
     float deltaAngle = 360.0f / amountOfTriangles;
 
+    // Create center of the circle
+    vertices[0] = 0.0f;
+    vertices[1] = 0.0f;
+    vertices[2] = 0.0f;
+    
+    int offset = numOfDimensionsInVertex * amountOfCircleCenterVertices;
 
     for (int point = 0; point < amountOfTriangles; point++)
     {
-        int triangleFirstPoint_X_index = point * verticesPerTriangle * vertexNumOfDimensions;
+        int triangleFirstPoint_X_index = point * numOfDimensionsInVertex + offset;
         int triangleFirstPoint_Y_index = triangleFirstPoint_X_index + 1;
         int triangleFirstPoint_Z_index = triangleFirstPoint_Y_index + 1;
 
-        // calculate a point when creating very first vertex
-        if (point == 0)
-        {
-            GetCircle2DVertex(startingPoint, deltaAngle * -1.0f, 0.5f, tempVertex);  
-        }
-        // otherwise ssign first point to second point of previous vertex
-        else
-        {
-            tempVertex[0] = vertices[triangleFirstPoint_X_index - 6];
-            tempVertex[1] = vertices[triangleFirstPoint_X_index - 5];
-        }
+        GetCircle2DVertex(startingPoint, deltaAngle * point, 0.5f, tempVertex);  
 
         // first vertex of the triangle (equal to second vertex of previous triangle)
         vertices[triangleFirstPoint_X_index] = tempVertex[0];
         vertices[triangleFirstPoint_Y_index] = tempVertex[1];
         vertices[triangleFirstPoint_Z_index] = 0.0f;
-
-        GetCircle2DVertex(startingPoint, deltaAngle * point, 0.5f, tempVertex);  
-
-        int triangleSecondPoint_X_index = triangleFirstPoint_X_index + vertexNumOfDimensions;
-        int triangleSecondPoint_Y_index = triangleSecondPoint_X_index + 1;
-        int triangleSecondPoint_Z_index = triangleSecondPoint_Y_index + 1;
-
-        // second right vertex of the triangle (generated based on angle)
-        vertices[triangleSecondPoint_X_index] = tempVertex[0];
-        vertices[triangleSecondPoint_Y_index] = tempVertex[1];
-        vertices[triangleSecondPoint_Z_index] = 0.0f;
-
-        int triangleThirdPoint_X_index = triangleSecondPoint_X_index + vertexNumOfDimensions;
-        int triangleThirdPoint_Y_index = triangleThirdPoint_X_index + 1;
-        int triangleThirdPoint_Z_index = triangleThirdPoint_Y_index + 1;
-
-        // third vertex of the triangle (equal to center of the circle)
-        vertices[triangleThirdPoint_X_index] = startingPoint[0];
-        vertices[triangleThirdPoint_Y_index] = startingPoint[1];
-        vertices[triangleThirdPoint_Z_index] = 0.0f;
     }
 }
 
@@ -215,5 +213,32 @@ void CheckShaderLink(unsigned int shaderProgram)
     {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+    }
+}
+
+void PrintArray(float* arr, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        std::cout << "[" << i << "]:" << arr[i] << std::endl;
+    }
+}
+
+void CreateCircleTriangles(unsigned int* elementIndices, int amountOfTriangles)
+{
+    for (int triangleIndex = 0; triangleIndex < amountOfTriangles; triangleIndex++)
+    {
+        elementIndices[triangleIndex * amountOfVerticesInTriangle] = 0;
+        elementIndices[triangleIndex * amountOfVerticesInTriangle + 1] = triangleIndex + 1;
+
+        if (triangleIndex == amountOfTriangles - 1)
+        {
+            // for the last triangle, choose point number 1 to create a full circle
+            elementIndices[triangleIndex * amountOfVerticesInTriangle + 2] = 1;
+        }
+        else
+        {
+            elementIndices[triangleIndex * amountOfVerticesInTriangle + 2] = triangleIndex + 2;
+        }
     }
 }
